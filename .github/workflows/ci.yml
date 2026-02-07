@@ -40,7 +40,7 @@ jobs:
   build-and-push:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -88,7 +88,7 @@ jobs:
       - name: Read public SSH key
         id: read-public-key
         run: |
-          echo "PUBLIC_SSH_KEY=$(cat ~/.ssh/deploy_key.pub)" >> $GITHUB_ENV
+          echo "SSH_PUBLIC_KEY=$(cat ~/.ssh/deploy_key.pub)" >> $GITHUB_ENV
 
       - name: Terraform init
         run: |
@@ -103,7 +103,7 @@ jobs:
           TF_VAR_yc_token: ${{ secrets.YC_TOKEN }}
           TF_VAR_yc_cloud_id: ${{ secrets.YC_CLOUD_ID }}
           TF_VAR_yc_folder_id: ${{ secrets.YC_FOLDER_ID }}
-          TF_VAR_public_ssh_key: ${{ secrets.SSH_PUBLIC_KEY }}
+          TF_VAR_public_ssh_key: ${{ env.SSH_PUBLIC_KEY }}
 
       - name: Get VM ip from terraform output
         id: get-ip
@@ -150,4 +150,4 @@ jobs:
           TF_VAR_yc_token: ${{ secrets.YC_TOKEN }}
           TF_VAR_yc_cloud_id: ${{ secrets.YC_CLOUD_ID }}
           TF_VAR_yc_folder_id: ${{ secrets.YC_FOLDER_ID }}
-          TF_VAR_public_ssh_key: ${{ secrets.SSH_PUBLIC_KEY }}
+          TF_VAR_public_ssh_key: ${{ env.SSH_PUBLIC_KEY }}
