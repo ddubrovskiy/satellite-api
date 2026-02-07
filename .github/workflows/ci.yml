@@ -1,10 +1,6 @@
 name: CI/CD ppln
 
 on:
-  push:
-    branches: ["master"]
-  pull_request:
-    branches: ["master"]
   workflow_dispatch:
 
 env:
@@ -132,6 +128,7 @@ jobs:
           curl -f http://${{ env.VM_IP }}:8000/satellites
 
   cleanup:
+    timeout-minutes: 10
     if: always()
     needs: deploy
     runs-on: ubuntu-latest
@@ -153,3 +150,4 @@ jobs:
           TF_VAR_yc_token: ${{ secrets.YC_TOKEN }}
           TF_VAR_yc_cloud_id: ${{ secrets.YC_CLOUD_ID }}
           TF_VAR_yc_folder_id: ${{ secrets.YC_FOLDER_ID }}
+          TF_VAR_public_ssh_key: ${{ secrets.SSH_PUBLIC_KEY }}
