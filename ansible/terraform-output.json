@@ -1,0 +1,12 @@
+{
+  "ssh-command": {
+    "sensitive": false,
+    "type": "string",
+    "value": "ssh -i ~/.ssh/git-key_ed25519 ubuntu@89.169.150.144"
+  },
+  "vm_public_ip": {
+    "sensitive": false,
+    "type": "string",
+    "value": "89.169.150.144"
+  }
+}

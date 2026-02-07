@@ -1,0 +1,6 @@
+terraform/terraform.tfvars
+token.txt
+start_ssh
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup

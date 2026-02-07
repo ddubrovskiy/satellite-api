@@ -1,0 +1,75 @@
+---
+- name: Deploy Satellite API
+  hosts: satellite
+  become: yes
+  vars:
+    app_image: "ghcr.io/ddubrovskiy/satellite-api:latest"
+    app_port: 8000
+  
+  pre_tasks:
+    - name: S_notification
+      debug:
+        msg: "Deploy started"
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+        update_cache: yes
+    
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repo
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable
+        state: present
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+        update_cache: yes
+
+    - name: Ensure docker is started
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Reboot for changes to take place
+      meta: reset_connection
+
+    - name: Pull latest image
+      docker_image:
+        name: "{{ app_image }}"
+        source: pull
+      become: no
+
+    - name: Run container
+      docker_container:
+        name: satellite-api
+        image: "{{ app_image }}"
+        ports:
+          - "{{ app_port }}:8000"
+        restart_policy: always
+      become: no
+
+  post_tasks:
+    - name: F_notification
+      debug:
+        msg: "Deploy finished"
