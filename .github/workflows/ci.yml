@@ -59,7 +59,7 @@ jobs:
           push: true
           tags: ghcr.io/${{ github.repository }}:latest
 
-  deploy+destroy:
+  deploydestroy:
     needs: [test, build-and-push]
     runs-on: ubuntu-latest
     steps:
