@@ -131,8 +131,12 @@ jobs:
 
       - name: Verify deployment
         run: |
-          curl -f http://${{ env.VM_IP }}:8000/satellites
-      
+          timeout 60s bash -c '
+            while ! curl -f http://${{ env.VM_IP }}:8000/satellites; do
+              echo "Waiting for API to be ready..."
+              sleep 5
+            done
+          '
 
       - name: Terraform destroy
         if: always()
