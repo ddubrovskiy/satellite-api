@@ -75,6 +75,6 @@ resource "yandex_compute_instance" "vm" {
   }
 
   metadata = {
-    ssh-keys = "ubuntu:${var.public_ssh_key}"
-  }
+  ssh-keys = "ubuntu:ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOBoPB/GmscaypHsFgIIdq6gQ/XfqxAZyLbvqTIftVqX ddubrovskiy@github"
+}
 }
