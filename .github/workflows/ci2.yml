@@ -1,0 +1,134 @@
+name: CI/CD ppln (no destroy)
+
+on:
+  workflow_dispatch:
+
+env:
+  TF_VAR_yc_token: ${{ secrets.YC_TOKEN }}
+  TF_VAR_yc_cloud_id: ${{ secrets.YC_CLOUD_ID }}
+  TF_VAR_yc_folder_id: ${{ secrets.YC_FOLDER_ID }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+  
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Testing
+        run: |
+          pytest tests/ -v
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Log in to gchr
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.CR_PAT}}
+
+      - name: Build and Push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}:latest
+
+  deploydestroy:
+    needs: [test, build-and-push]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.0"
+
+      - name: Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+          pip install docker
+      
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ env.TF_VAR_yc_folder_id }}.compute.yandexcloud.net >> ~/.ssh/known_hosts || true
+          ssh-keygen -y -f ~/.ssh/deploy_key > ~/.ssh/deploy_key.pub
+
+      - name: Read public SSH key
+        id: read-public-key
+        run: |
+          echo "SSH_PUBLIC_KEY=$(cat ~/.ssh/deploy_key.pub)" >> $GITHUB_ENV
+
+      - name: Debug public key
+        run: |
+          echo "Public key:"
+          echo "${{ env.SSH_PUBLIC_KEY }}"
+
+      - name: Terraform init
+        run: |
+          cd terraform 
+          terraform init
+
+      - name: Terraform apply
+        run: |
+          cd terraform
+          terraform apply -auto-approve
+        env:
+          TF_VAR_yc_token: ${{ secrets.YC_TOKEN }}
+          TF_VAR_yc_cloud_id: ${{ secrets.YC_CLOUD_ID }}
+          TF_VAR_yc_folder_id: ${{ secrets.YC_FOLDER_ID }}
+          TF_VAR_public_ssh_key: ${{ env.SSH_PUBLIC_KEY }}
+
+      - name: Get VM ip from terraform output
+        id: get-ip
+        run: |
+          cd terraform
+          echo "VM_IP=$(terraform output -raw vm_public_ip)" >> $GITHUB_ENV
+          
+      - name: Wait for it to start 
+        run: |
+          timeout 60s bash -c 'until nc -z ${{ env.VM_IP }} 22; do sleep 5; done'
+
+      - name: Run Ansible playbook
+        run: |
+          cd ansible
+          ansible-playbook deploy.yml \
+            -i "${{ env.VM_IP }}," \
+            --user ubuntu \
+            --private-key ~/.ssh/deploy_key \
+            --ssh-extra-args="-o StrictHostKeyChecking=no" 
+
+      - name: Verify deployment
+        run: |
+          curl -f http://${{ env.VM_IP }}:8000/satellites
