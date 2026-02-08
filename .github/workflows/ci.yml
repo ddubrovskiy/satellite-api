@@ -118,10 +118,11 @@ jobs:
       - name: Run Ansible playbook
         run: |
           cd ansible
-          ansible-playbook -i inventory.ini deploy.yml \
+          ansible-playbook deploy.yml \
+            -i "${{ env.VM_IP }}," \
+            --user ubuntu \
             --private-key ~/.ssh/deploy_key \
-            --ssh-extra-args="-o StrictHostKeyChecking=no" \
-            --extra-vars "target_host=${{ env.VM_IP }}"
+            --ssh-extra-args="-o StrictHostKeyChecking=no" 
 
       - name: Verify deployment
         run: |

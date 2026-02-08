@@ -1,6 +1,6 @@
 ---
 - name: Deploy Satellite API
-  hosts: satellite
+  hosts: all
   become: yes
   vars:
     app_image: "ghcr.io/ddubrovskiy/satellite-api:latest"
