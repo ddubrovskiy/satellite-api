@@ -90,6 +90,11 @@ jobs:
         run: |
           echo "SSH_PUBLIC_KEY=$(cat ~/.ssh/deploy_key.pub)" >> $GITHUB_ENV
 
+      - name: Debug public key
+        run: |
+          echo "Public key:"
+          echo "${{ env.SSH_PUBLIC_KEY }}"
+
       - name: Terraform init
         run: |
           cd terraform 
