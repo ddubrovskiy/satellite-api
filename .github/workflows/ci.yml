@@ -59,7 +59,7 @@ jobs:
           push: true
           tags: ghcr.io/${{ github.repository }}:latest
 
-  deploy:
+  deploy+destroy:
     needs: [test, build-and-push]
     runs-on: ubuntu-latest
     steps:
@@ -132,26 +132,11 @@ jobs:
       - name: Verify deployment
         run: |
           curl -f http://${{ env.VM_IP }}:8000/satellites
-
-  cleanup:
-    timeout-minutes: 10
-    if: always()
-    needs: deploy
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.9.0"
+      
 
       - name: Terraform destroy
-        run: |
-          cd terraform
-          terraform init
-          terraform destroy -auto-approve
+        if: always()
+        run: cd terraform && terraform destroy -auto-approve
         env:
           TF_VAR_yc_token: ${{ secrets.YC_TOKEN }}
           TF_VAR_yc_cloud_id: ${{ secrets.YC_CLOUD_ID }}

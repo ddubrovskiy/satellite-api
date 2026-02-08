@@ -75,6 +75,14 @@ resource "yandex_compute_instance" "vm" {
   }
 
   metadata = {
-  ssh-keys = "ubuntu:ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOBoPB/GmscaypHsFgIIdq6gQ/XfqxAZyLbvqTIftVqX ddubrovskiy@github"
-}
+    ssh-keys = "ubuntu:${var.public_ssh_key}"
+    user-data = <<-EOF
+      #cloud-config
+      chpasswd:
+        list: |
+          ubuntu:temp_password_123
+        expire: False
+      ssh_pwauth: True
+    EOF
+  }
 }
