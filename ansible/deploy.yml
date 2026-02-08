@@ -53,17 +53,10 @@
 
 - name: Deploy application
   hosts: all
-  become: no
+  become: yes
   vars:
     app_image: "ghcr.io/ddubrovskiy/satellite-api:latest"
     app_port: 8000
-
-  pre_tasks:
-    - name: Refresh group membership
-      shell: |
-        exec sg docker -c "echo OK"
-      changed_when: false
-      failed_when: false
 
   tasks:
     - name: Pull latest image
